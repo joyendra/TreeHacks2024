@@ -4,12 +4,13 @@ import json
 import openai
 import reflex as rx
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
-openai.api_base = os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1")
+# openai.api_key = os.getenv("OPENAI_API_KEY")
+# openai.api_base = os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1")
+openai.api_key = "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"
+openai.api_base = "https://api.openai.com/v1"
 
 BAIDU_API_KEY = os.getenv("BAIDU_API_KEY")
 BAIDU_SECRET_KEY = os.getenv("BAIDU_SECRET_KEY")
-
 
 if not openai.api_key and not BAIDU_API_KEY:
     raise Exception("Please set OPENAI_API_KEY or BAIDU_API_KEY")
@@ -153,7 +154,7 @@ class State(rx.State):
 
         # Start a new session to answer the question.
         session = openai.ChatCompletion.create(
-            model=os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"),
+            model="gpt-4",
             messages=messages,
             stream=True,
         )
