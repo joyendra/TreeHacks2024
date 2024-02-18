@@ -78,6 +78,16 @@ def action_bar() -> rx.Component:
                             _hover={"bg": styles.accent_color},
                             style=styles.input_style,
                         ),
+                        rx.chakra.button(
+                            rx.cond(
+                                State.processing,
+                                loading_icon(height="1em"),
+                                rx.chakra.text("Record"),
+                            ),
+                            type_="submit",
+                            _hover={"bg": styles.accent_color},
+                            style=styles.input_style,
+                        )
                     ),
                     is_disabled=State.processing,
                 ),
@@ -86,7 +96,7 @@ def action_bar() -> rx.Component:
                 width="100%",
             ),
             rx.chakra.text(
-                "ReflexGPT may return factually incorrect or misleading responses. Use discretion.",
+                "CareGPT may return factually incorrect or misleading responses. Use discretion.",
                 font_size="xs",
                 color="#fff6",
                 text_align="center",

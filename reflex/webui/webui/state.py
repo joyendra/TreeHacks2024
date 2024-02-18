@@ -37,7 +37,7 @@ class QA(rx.Base):
 
 
 DEFAULT_CHATS = {
-    "Intros": [],
+    "Interact": [],
 }
 
 
@@ -48,7 +48,7 @@ class State(rx.State):
     chats: dict[str, list[QA]] = DEFAULT_CHATS
 
     # The current chat name.
-    current_chat = "Intros"
+    current_chat = "Interact"
 
     # The current question.
     question: str
