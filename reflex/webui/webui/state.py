@@ -9,24 +9,18 @@ import reflex as rx
 openai.api_key = "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"
 openai.api_base = "https://api.openai.com/v1"
 
-BAIDU_API_KEY = os.getenv("BAIDU_API_KEY")
-BAIDU_SECRET_KEY = os.getenv("BAIDU_SECRET_KEY")
+MONSTER_API_KEY = os.getenv("MONSTER_API_KEY")
+MONSTER_SECRET_KEY = os.getenv("MONSTER_SECRET_KEY")
 
-if not openai.api_key and not BAIDU_API_KEY:
-    raise Exception("Please set OPENAI_API_KEY or BAIDU_API_KEY")
+if not openai.api_key and not MONSTER_API_KEY:
+    raise Exception("Please set OPENAI_API_KEY or MONSTER_API_KEY")
 
 
 def get_access_token():
     """
     :return: access_token
     """
-    url = "https://aip.baidubce.com/oauth/2.0/token"
-    params = {
-        "grant_type": "client_credentials",
-        "client_id": BAIDU_API_KEY,
-        "client_secret": BAIDU_SECRET_KEY,
-    }
-    return str(requests.post(url, params=params).json().get("access_token"))
+    return "d2b97bee-4f34-40c9-a347-c59b4a195488"
 
 
 class QA(rx.Base):
@@ -65,7 +59,7 @@ class State(rx.State):
     # Whether the modal is open.
     modal_open: bool = False
 
-    api_type: str = "baidu" if BAIDU_API_KEY else "openai"
+    api_type: str = "monster" if MONSTER_API_KEY else "openai"
 
     def create_chat(self):
         """Create a new chat."""
@@ -121,7 +115,7 @@ class State(rx.State):
         if self.api_type == "openai":
             model = self.openai_process_question
         else:
-            model = self.baidu_process_question
+            model = self.monster_process_question
 
         async for value in model(question):
             yield value
@@ -170,42 +164,64 @@ class State(rx.State):
         # Toggle the processing flag.
         self.processing = False
 
-    async def baidu_process_question(self, question: str):
-        """Get the response from the API.
+    import requests
+
+    async def monster_process_question(self, question: str):
+        """Get the response from the external API.
 
         Args:
-            form_data: A dict with the current question.
+            question: The question to process.
         """
         # Add the question to the list of questions.
         qa = QA(question=question, answer="")
         self.chats[self.current_chat].append(qa)
 
-        # Clear the input and start the processing.
         self.processing = True
         yield
 
-        # Build the messages.
-        messages = []
-        for qa in self.chats[self.current_chat]:
-            messages.append({"role": "user", "content": qa.question})
-            messages.append({"role": "assistant", "content": qa.answer})
+        payload = {
+            "input_variables": {"prompt": question},
+            "prompt": question,
+            "stream": False,
+            "max_tokens": 256,
+            "n": 1,
+            "best_of": 1,
+            "presence_penalty": 0,
+            "frequency_penalty": 0,
+            "repetition_penalty": 1,
+            "temperature": 1,
+            "top_p": 1,
+            "top_k": -1,
+            "min_p": 0,
+            "use_beam_search": False,
+            "length_penalty": 1,
+            "early_stopping": False
+        }
 
-        # Remove the last mock answer.
-        messages = json.dumps({"messages": messages[:-1]})
-        # Start a new session to answer the question.
-        session = requests.request(
-            "POST",
-            "https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/completions_pro?access_token="
-            + get_access_token(),
-            headers={"Content-Type": "application/json"},
-            data=messages,
-        )
+        headers = {
+            "accept": "application/json",
+            "Authorization": "Bearer d2b97bee-4f34-40c9-a347-c59b4a195488",
+            "Content-Type": "application/json"
+        }
 
-        json_data = json.loads(session.text)
-        if "result" in json_data.keys():
-            answer_text = json_data["result"]
+        try:
+            response = requests.post(
+                "https://5d7d0c35-402b-4225-97fb-0fb8fd9d0b51.monsterapi.ai/generate",
+                json=payload,
+                headers=headers
+            )
+            response.raise_for_status()
+            answer_data = response.json()
+
+            answer_text = answer_data.get("answers", [])[0]
+
             self.chats[self.current_chat][-1].answer += answer_text
             self.chats = self.chats
+
+        except Exception as e:
+            self.chats[self.current_chat][-1].answer += "Error processing your question: " + str(e)
+            self.chats = self.chats
+
+        finally:
+            self.processing = False
             yield
-        # Toggle the processing flag.
-        self.processing = False
